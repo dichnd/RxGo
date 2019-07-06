@@ -81,6 +81,7 @@ func (o Observable) Subscribe(handler rx.EventHandler, opts ...Option) <-chan su
 			}
 
 			done <- sub.Unsubscribe()
+			close(done)
 			return
 		}()
 	} else {
@@ -115,6 +116,7 @@ func (o Observable) Subscribe(handler rx.EventHandler, opts ...Option) <-chan su
 			}
 
 			done <- sub.Unsubscribe()
+			close(done)
 		}()
 	}
 
