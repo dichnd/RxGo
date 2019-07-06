@@ -363,6 +363,24 @@ func TestSubscribeToObserver(t *testing.T) {
 	assert.Equal("bang", sub.Err().Error())
 }
 
+func TestSubscribeToCloseChannel(t *testing.T) {
+	myStream := Just(nil)
+
+	donetext := ""
+
+	df := handlers.DoneFunc(func() {
+		donetext = "done"
+	})
+
+	done := myStream.Subscribe(df)
+	<-done
+
+	_, ok := <- done
+
+	assert.Equal(t, "done", donetext)
+	assert.False(t, ok)
+}
+
 func TestObservableMap(t *testing.T) {
 	items := []interface{}{1, 2, 3, "foo", "bar", []byte("baz")}
 	it, err := iterable.New(items)
