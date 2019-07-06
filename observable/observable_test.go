@@ -1004,3 +1004,458 @@ func TestEmptyCompletesSequence(t *testing.T) {
 	emissionObserver.AssertNotCalled(t, "OnError", mock.Anything)
 	emissionObserver.AssertCalled(t, "OnDone")
 }
+
+//-----------------------------------------------------------------------------------------
+
+func TestObservable_Zip_Size_One_Same_Size(t *testing.T) {
+	o := Just(1)
+	ob := Just(2)
+	obs := []Observable{Just(3)}
+
+	var v interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = i
+		}))
+
+	assert.Equal(t, []interface{}{1, 2, 3}, v)
+}
+
+func TestObservable_Zip_Size_Two_Same_Size(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{Just(5, 6)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{2, 4, 6}, v[1])
+}
+
+func TestObservable_Zip_Size_One_Not_Same_Size_0(t *testing.T) {
+	o := Just(1)
+	ob := Just(3)
+	obs := []Observable{Empty()}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{1, 3, nil}, v[0])
+}
+
+func TestObservable_Zip_Size_One_Not_Same_Size_1(t *testing.T) {
+	o := Just(1)
+	ob := Empty()
+	obs := []Observable{Just(5)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{1, nil, 5}, v[0])
+}
+
+func TestObservable_Zip_Size_One_Not_Same_Size_2(t *testing.T) {
+	o := Empty()
+	ob := Just(3)
+	obs := []Observable{Just(5)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{nil, 3, 5}, v[0])
+}
+
+func TestObservable_Zip_Size_Two_Not_Same_Size_0(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3)
+	obs := []Observable{Just(5)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{2, nil, nil}, v[1])
+}
+
+func TestObservable_Zip_Size_Two_Not_Same_Size_1(t *testing.T) {
+	o := Just(1)
+	ob := Just(3, 4)
+	obs := []Observable{Just(5)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{nil, 4, nil}, v[1])
+}
+
+func TestObservable_Zip_Size_Two_Not_Same_Size_2(t *testing.T) {
+	o := Just(1)
+	ob := Just(3)
+	obs := []Observable{Just(5, 6)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{nil, nil, 6}, v[1])
+}
+
+func TestObservable_Zip_Size_Two_Obs_Empty(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3}, v[0])
+	assert.Equal(t, []interface{}{2, 4}, v[1])
+}
+
+func TestObservable_Zip_Size_Two_Multi_Item_0(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{Just(5, 6),
+		Just(7, 8)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5, 7}, v[0])
+	assert.Equal(t, []interface{}{2, 4, 6, 8}, v[1])
+}
+
+func TestObservable_Zip_Size_Two_Multi_Item_1(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{Just(5, 6),
+		Just(7, 8),
+		Just(9, 10)}
+
+	var v []interface{}
+	<- o.Zip(ob, obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5, 7, 9}, v[0])
+	assert.Equal(t, []interface{}{2, 4, 6, 8, 10}, v[1])
+}
+
+func TestObservable_Zip_Size_Two_Multi_Item_Error_0(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{Just(5, 6),
+		Just(errors.New("testing"), 8),
+		Just(9, 10)}
+
+	var v []interface{}
+	var err error
+	<- o.Zip(ob, obs...).
+		Subscribe(observer.Observer{
+			NextHandler: func(i interface{}) {
+				v = append(v, i)
+			},
+			ErrHandler: func(e error) {
+				err = e
+			},
+		})
+
+	assert.Equal(t, 0, len(v))
+	assert.NotNil(t, err)
+}
+
+func TestObservable_Zip_Size_Two_Multi_Item_Error_1(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, errors.New("testing"))
+	obs := []Observable{Just(5, 6),
+		Just(7, 8),
+		Just(9, 10)}
+
+	var v []interface{}
+	var err error
+	<- o.Zip(ob, obs...).
+		Subscribe(observer.Observer{
+			NextHandler: func(i interface{}) {
+				v = append(v, i)
+			},
+			ErrHandler: func(e error) {
+				err = e
+			},
+		})
+
+	assert.Equal(t, 1, len(v))
+	assert.NotNil(t, err)
+	assert.Equal(t, []interface{}{1, 3, 5, 7, 9}, v[0])
+}
+
+//----------------------------------------------------------------------------------------------
+
+func TestFObservable_ZipAll_Size_One_Same_Size(t *testing.T) {
+	o := Just(1)
+	ob := Just(2)
+	obs := []Observable{o, ob, Just(3)}
+
+	var v interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = i
+		}))
+
+	assert.Equal(t, []interface{}{1, 2, 3}, v)
+}
+
+func TestFObservable_ZipAll_Size_Two_Same_Size(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{o, ob, Just(5, 6)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{2, 4, 6}, v[1])
+}
+
+func TestFObservable_ZipAll_Size_One_Not_Same_Size_0(t *testing.T) {
+	o := Just(1)
+	ob := Just(3)
+	obs := []Observable{o, ob, Empty()}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{1, 3, nil}, v[0])
+}
+
+func TestFObservable_ZipAll_Size_One_Not_Same_Size_1(t *testing.T) {
+	o := Just(1)
+	ob := Empty()
+	obs := []Observable{o, ob, Just(5)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{1, nil, 5}, v[0])
+}
+
+func TestFObservable_ZipAll_Size_One_Not_Same_Size_2(t *testing.T) {
+	o := Empty()
+	ob := Just(3)
+	obs := []Observable{o, ob, Just(5)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{nil, 3, 5}, v[0])
+}
+
+func TestFObservable_ZipAll_Size_Two_Not_Same_Size_0(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3)
+	obs := []Observable{o, ob, Just(5)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{2, nil, nil}, v[1])
+}
+
+func TestFObservable_ZipAll_Size_Two_Not_Same_Size_1(t *testing.T) {
+	o := Just(1)
+	ob := Just(3, 4)
+	obs := []Observable{o, ob, Just(5)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{nil, 4, nil}, v[1])
+}
+
+func TestFObservable_ZipAll_Size_Two_Not_Same_Size_2(t *testing.T) {
+	o := Just(1)
+	ob := Just(3)
+	obs := []Observable{o, ob, Just(5, 6)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5}, v[0])
+	assert.Equal(t, []interface{}{nil, nil, 6}, v[1])
+}
+
+func TestFObservable_ZipAll_Size_Two_Multi_Item_0(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{o, ob, Just(5, 6),
+		Just(7, 8)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5, 7}, v[0])
+	assert.Equal(t, []interface{}{2, 4, 6, 8}, v[1])
+}
+
+func TestFObservable_ZipAll_Size_Two_Multi_Item_1(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{o, ob, Just(5, 6),
+		Just(7, 8),
+		Just(9, 10)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 2, len(v))
+	assert.Equal(t, []interface{}{1, 3, 5, 7, 9}, v[0])
+	assert.Equal(t, []interface{}{2, 4, 6, 8, 10}, v[1])
+}
+
+func TestFObservable_ZipAll_Size_Two_Multi_Item_Error_0(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, 4)
+	obs := []Observable{o, ob, Just(5, 6),
+		Just(errors.New("testing"), 8),
+		Just(9, 10)}
+
+	var v []interface{}
+	var err error
+	<- ZipAll(obs...).
+		Subscribe(observer.Observer{
+			NextHandler: func(i interface{}) {
+				v = append(v, i)
+			},
+			ErrHandler: func(e error) {
+				err = e
+			},
+		})
+
+	assert.Equal(t, 0, len(v))
+	assert.NotNil(t, err)
+}
+
+func TestFObservable_ZipAll_Size_Two_Multi_Item_Error_1(t *testing.T) {
+	o := Just(1, 2)
+	ob := Just(3, errors.New("testing"))
+	obs := []Observable{o, ob, Just(5, 6),
+		Just(7, 8),
+		Just(9, 10)}
+
+	var v []interface{}
+	var err error
+	<- ZipAll(obs...).
+		Subscribe(observer.Observer{
+			NextHandler: func(i interface{}) {
+				v = append(v, i)
+			},
+			ErrHandler: func(e error) {
+				err = e
+			},
+		})
+
+	assert.Equal(t, 1, len(v))
+	assert.NotNil(t, err)
+	assert.Equal(t, []interface{}{1, 3, 5, 7, 9}, v[0])
+}
+
+func TestFObservable_ZipAll_Obs_Empty(t *testing.T) {
+	var obs []Observable
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 0, len(v))
+}
+
+func TestFObservable_ZipAll_Obs_One(t *testing.T) {
+	obs := []Observable{Just(1)}
+
+	var v []interface{}
+	<- ZipAll(obs...).
+		Subscribe(handlers.NextFunc(func(i interface{}) {
+			v = append(v, i)
+		}))
+
+	assert.Equal(t, 1, len(v))
+	assert.Equal(t, []interface{}{1}, v[0])
+}

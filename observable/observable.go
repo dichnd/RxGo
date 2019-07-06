@@ -314,6 +314,47 @@ func (o Observable) Scan(apply fx.ScannableFunc) Observable {
 	return Observable(out)
 }
 
+func (o Observable) Zip(ob Observable, obs ...Observable) Observable {
+	out := make(chan interface{})
+
+	obs = append([]Observable{o, ob}, obs...)
+
+	go func() {
+		finish := false
+	OuterLoop:
+		for !finish {
+			finish = true
+			values := make([]interface{}, len(obs))
+
+			index := 0
+			for _, obItem := range obs {
+				v, ok := <- obItem
+				if ok {
+					switch v.(type) {
+					case error:
+						out <- v
+						break OuterLoop
+					default:
+						values[index] = v
+						finish = false
+					}
+				} else {
+					values[index] = nil
+				}
+				index += 1
+			}
+
+			if !finish {
+				out <- values
+			}
+		}
+
+		close(out)
+	}()
+
+	return Observable(out)
+}
+
 // From creates a new Observable from an Iterator.
 func From(it rx.Iterator) Observable {
 	source := make(chan interface{})
@@ -454,3 +495,43 @@ func Start(f fx.EmittableFunc, fs ...fx.EmittableFunc) Observable {
 
 	return Observable(source)
 }
+
+func ZipAll(obs ...Observable) Observable {
+	out := make(chan interface{})
+
+	go func() {
+		finish := false
+	OuterLoop:
+		for !finish {
+			finish = true
+			values := make([]interface{}, len(obs))
+
+			index := 0
+			for _, obItem := range obs {
+				v, ok := <- obItem
+				if ok {
+					switch v.(type) {
+					case error:
+						out <- v
+						break OuterLoop
+					default:
+						values[index] = v
+						finish = false
+					}
+				} else {
+					values[index] = nil
+				}
+				index += 1
+			}
+
+			if !finish {
+				out <- values
+			}
+		}
+
+		close(out)
+	}()
+
+	return Observable(out)
+}
+
