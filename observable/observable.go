@@ -537,3 +537,32 @@ func ZipAll(obs ...Observable) Observable {
 	return Observable(out)
 }
 
+func Any(obs ...Observable) Observable {
+	out := make(chan interface{})
+
+	go func() {
+		finished := false
+		m := sync.Mutex{}
+		var wg sync.WaitGroup
+		wg.Add(1)
+		for _, obItem := range obs {
+			go func(o Observable) {
+				for v := range o {
+					m.Lock()
+					if !finished {
+						out <- v
+						wg.Done()
+						finished = true
+					}
+					m.Unlock()
+				}
+			}(obItem)
+		}
+
+		wg.Wait()
+		close(out)
+	}()
+
+	return Observable(out)
+}
+
